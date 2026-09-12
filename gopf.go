@@ -15,6 +15,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -36,6 +37,7 @@ type Options struct {
 }
 
 var options Options
+var backendMu sync.RWMutex
 
 func usage() {
 	log.Printf("usage: %s config\n", os.Args[0])
@@ -63,7 +65,9 @@ func reloadConfig() error {
 	}
 
 	log.Printf("config:%v", backend)
+	backendMu.Lock()
 	options.backend = backend
+	backendMu.Unlock()
 	return nil
 }
 
@@ -73,11 +77,11 @@ func chooseHost(weight int, hosts []Host) *Host {
 	}
 
 	v := rand.Intn(weight)
-	for _, host := range hosts {
-		if host.Weight >= v {
-			return &host
+	for i := range hosts {
+		if v < hosts[i].Weight {
+			return &hosts[i]
 		}
-		v -= host.Weight
+		v -= hosts[i].Weight
 	}
 	return nil
 }
@@ -89,25 +93,45 @@ func forward(source *net.TCPConn, dest *net.TCPConn) {
 }
 
 func handleConn(source *net.TCPConn) {
-	host := chooseHost(options.backend.weight, options.backend.Hosts)
+	backendMu.RLock()
+	weight := options.backend.weight
+	hosts := options.backend.Hosts
+	backendMu.RUnlock()
+
+	host := chooseHost(weight, hosts)
 	if host == nil {
 		source.Close()
 		log.Println("choose host failed")
 		return
 	}
 
-	dest, err := net.Dial("tcp", host.Addr)
+	dest, err := net.DialTimeout("tcp", host.Addr, 5*time.Second)
 	if err != nil {
 		source.Close()
 		log.Printf("connect to %s failed: %s", host.Addr, err.Error())
 		return
 	}
+	destTCP := dest.(*net.TCPConn)
 
 	source.SetKeepAlive(true)
 	source.SetKeepAlivePeriod(time.Second * 60)
+	destTCP.SetKeepAlive(true)
+	destTCP.SetKeepAlivePeriod(time.Second * 60)
 
-	go forward(source, dest.(*net.TCPConn))
-	forward(dest.(*net.TCPConn), source)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		forward(source, destTCP)
+	}()
+	go func() {
+		defer wg.Done()
+		forward(destTCP, source)
+	}()
+	wg.Wait()
+
+	source.Close()
+	destTCP.Close()
 }
 
 const SIG_RELOAD = syscall.Signal(35)

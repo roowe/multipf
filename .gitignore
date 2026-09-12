@@ -1,0 +1,40 @@
+# Binaries
+gopf
+*.exe
+*.out
+
+# Go
+/vendor/
+
+# Rust
+/gopf_rust/target/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Elixir
+/gopf_ex/_build/
+/gopf_ex/deps/
+/gopf_ex/bin/
+/gopf_ex/*.ez
+
+# TypeScript / Node
+/gopf_ts/node_modules/
+/gopf_ts/dist/
+/gopf_ts/build/
+npm-debug.log*
+
+# Zig
+/gopf_zig/.zig-cache/
+/gopf_zig/zig-cache/
+/gopf_zig/zig-out/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp

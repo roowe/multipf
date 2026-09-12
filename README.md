@@ -1,68 +1,51 @@
-## make
-go install gopf
+# multipf
 
-## benchmark
-* use nginx as backend
-* export GOMAXPROCS=1 && go install gopf && bin/gopf settings.conf
+多语言实现的 TCP 四层反向代理 / 负载均衡器（**p**roxy **f**orwarder，简称 **pf**）。
 
-* use gopf as proxy: ab -n 10000 -c 100 http://127.0.0.1:1248/
-```
-Server Software:        nginx/1.2.1
-Server Hostname:        127.0.0.1
-Server Port:            1248
+项目起源于 [gopf](https://github.com/RaindyRoye/gopf)——一个用 Go 编写的简单端口转发器；在此基础上扩展出多种编程语言的实现，用于学习和对比不同语言在网络并发编程上的表达与性能。
 
-Document Path:          /
-Document Length:        396 bytes
+## 已实现语言
 
-Concurrency Level:      100
-Time taken for tests:   0.816 seconds
-Complete requests:      10000
-Failed requests:        0
-Write errors:           0
-Total transferred:      6060000 bytes
-HTML transferred:       3960000 bytes
-Requests per second:    12256.13 [#/sec] (mean)
-Time per request:       8.159 [ms] (mean)
-Time per request:       0.082 [ms] (mean, across all concurrent requests)
-Transfer rate:          7253.14 [Kbytes/sec] received
+| 目录 | 语言 |
+|---|---|
+| 根目录 (`gopf.go`) | Go |
+| `gopf_ex/` | Elixir |
+| `gopf_python/` | Python |
+| `gopf_rust/` | Rust |
+| `gopf_ts/` | TypeScript |
+| `gopf_zig/` | Zig |
 
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        0    0   0.4      0       4
-Processing:     3    8   1.3      8      18
-Waiting:        2    6   1.4      6      14
-Total:          3    8   1.4      8      18
+## 功能
+
+- TCP 四层流量转发
+- 基于权重的后端负载均衡
+- 配置热重载（信号驱动）
+- 连接保活（keep-alive）
+
+## 快速开始（Go 版本）
+
+```bash
+go build -o gopf .
+./gopf settings.conf
 ```
 
-* connnect nginx direct: ab -n 10000 -c 100 http://127.0.0.1/
-```
-Server Software:        nginx/1.2.1
-Server Hostname:        127.0.0.1
-Server Port:            80
+配置文件 `settings.conf` 示例：
 
-Document Path:          /
-Document Length:        396 bytes
-
-Concurrency Level:      100
-Time taken for tests:   0.477 seconds
-Complete requests:      10000
-Failed requests:        0
-Write errors:           0
-Total transferred:      6060000 bytes
-HTML transferred:       3960000 bytes
-Requests per second:    20945.74 [#/sec] (mean)
-Time per request:       4.774 [ms] (mean)
-Time per request:       0.048 [ms] (mean, across all concurrent requests)
-Transfer rate:          12395.62 [Kbytes/sec] received
-
-Connection Times (ms)
-              min  mean[+/-sd] median   max
-Connect:        1    2   0.3      2       4
-Processing:     1    3   0.5      2       8
-Waiting:        1    2   0.5      2       5
-Total:          3    5   0.5      5      11
-WARNING: The median and mean for the processing time are not within a normal deviation
-        These results are probably not that reliable.
+```json
+{
+  "TrafficUrl": "",
+  "Hosts": [
+    { "Addr": "127.0.0.1:80", "Weight": 10 }
+  ]
+}
 ```
 
-* much faster than pen(http://siag.nu/pen/)
+## ⚠️ 免责声明
+
+**本项目代码由 Doubao（豆包）AI 生成，未经人工审核。**
+
+代码可能存在缺陷、安全漏洞或性能问题，请勿直接用于生产环境。使用前请自行审查、测试和验证。
+
+## License
+
+MIT
