@@ -6,6 +6,7 @@ const chooseHost = backend_mod.chooseHost;
 
 const CONNECT_TIMEOUT_SECS = 5;
 const RECV_BUF_SIZE = 64 * 1024;
+const LISTEN_BACKLOG: c_int = 4096;
 
 /// Start the TCP proxy listener. Blocks the calling thread in the accept loop.
 pub fn startProxy(port: u16, store: *BackendStore) !void {
@@ -29,7 +30,7 @@ pub fn startProxy(port: u16, store: *BackendStore) !void {
         .sin_zero = [_]u8{0} ** 8,
     };
     try net.bindErr(listen_fd, @ptrCast(&addr), @sizeOf(net.sockaddr_in));
-    try net.listenErr(listen_fd, 128);
+    try net.listenErr(listen_fd, LISTEN_BACKLOG);
 
     std.log.info("gopf_zig listening on port {}", .{port});
 

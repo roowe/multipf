@@ -98,7 +98,7 @@ def start_proxy(port: int, store: BackendStore):
     listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     listener.bind(("0.0.0.0", port))
-    listener.listen(128)
+    listener.listen(4096)  # large backlog to handle bursty connections
     print(f"gopf_python listening on port {port}", flush=True)
 
     while True:

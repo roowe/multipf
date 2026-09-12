@@ -1,5 +1,5 @@
 # Binaries
-gopf
+/gopf
 *.exe
 *.out
 
@@ -38,3 +38,7 @@ npm-debug.log*
 .idea/
 .vscode/
 *.swp
+
+# Benchmark
+/bench/backend/target/
+/bench/results/log_*.txt

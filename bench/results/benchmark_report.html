@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>gopf 多语言性能测试报告 (修复后)</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 28px; margin-bottom: 8px; color: #1a1a2e; }
+  .subtitle { color: #666; margin-bottom: 24px; font-size: 14px; }
+  .badge { display: inline-block; background: #d4edda; color: #155724; padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-left: 8px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 32px; }
+  .meta-card { background: #fff; border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .meta-card .label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; }
+  .meta-card .value { font-size: 20px; font-weight: 600; color: #1a1a2e; margin-top: 4px; }
+  .chart-section { background: #fff; border-radius: 10px; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .chart-section h2 { font-size: 18px; margin-bottom: 12px; color: #1a1a2e; border-left: 4px solid #4361ee; padding-left: 10px; }
+  .chart { width: 100%; height: 400px; }
+  .chart-tall { height: 450px; }
+  .findings { background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .findings h2 { font-size: 18px; margin-bottom: 16px; color: #1a1a2e; border-left: 4px solid #4361ee; padding-left: 10px; }
+  .findings ul { padding-left: 20px; }
+  .findings li { margin-bottom: 10px; }
+  .findings li strong { color: #4361ee; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 4px; }
+  .tag-best { background: #d4edda; color: #155724; }
+  .tag-good { background: #d1ecf1; color: #0c5460; }
+  .tag-warn { background: #fff3cd; color: #856404; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #eee; }
+  th:first-child, td:first-child { text-align: left; }
+  th { background: #f8f9fa; font-weight: 600; color: #555; }
+  tr:hover { background: #f8f9fa; }
+  .fix-summary { background: #e8f5e9; border-left: 4px solid #28a745; padding: 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px; }
+  .fix-summary h3 { color: #155724; margin-bottom: 8px; font-size: 16px; }
+  .fix-summary table { font-size: 12px; }
+  .footer { text-align: center; color: #999; font-size: 12px; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>gopf 多语言 TCP 代理性能测试报告 <span class="badge">修复后 · 全并发零错误</span></h1>
+  <p class="subtitle">6 种语言实现 × 4 个并发级别（10/50/100/200）× 10 秒压测 · 1KB 载荷 · 后端为 Rust tokio echo server</p>
+
+  <div class="fix-summary">
+    <h3>修复内容与效果对比</h3>
+    <table>
+      <thead><tr><th style="text-align:left">语言</th><th>修复前 200并发 QPS</th><th>修复后 200并发 QPS</th><th>提升</th><th>修复前错误</th><th>修复后错误</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Rust</strong></td><td>19,091</td><td>84,086</td><td style="color:#28a745;font-weight:600">+340%</td><td>144,417</td><td style="color:#28a745;font-weight:600">0</td></tr>
+        <tr><td><strong>Zig</strong></td><td>41,737</td><td>83,777</td><td style="color:#28a745;font-weight:600">+101%</td><td>88,578</td><td style="color:#28a745;font-weight:600">0</td></tr>
+        <tr><td><strong>Elixir</strong></td><td>31,680</td><td>70,022</td><td style="color:#28a745;font-weight:600">+121%</td><td>94,277</td><td style="color:#28a745;font-weight:600">0</td></tr>
+        <tr><td><strong>Python</strong></td><td>28,018</td><td>25,088</td><td style="color:#856404">-10%</td><td>3,783</td><td style="color:#28a745;font-weight:600">0</td></tr>
+        <tr><td>Go</td><td>72,602</td><td>72,329</td><td>-0.4%</td><td>0</td><td>0</td></tr>
+        <tr><td>TypeScript</td><td>65,950</td><td>66,114</td><td>+0.2%</td><td>0</td><td>0</td></tr>
+      </tbody>
+    </table>
+    <p style="margin-top:10px;font-size:13px;color:#155724">
+      <strong>修复措施：</strong>① Rust 移除 5 秒读超时（高并发下导致连接被提前断开）；② 所有语言 listen backlog 从 128/5 提升到 4096；③ 编排脚本统一将 RLIMIT_NOFILE 从 256 提升到 65536（Rust/Zig 每连接 try_clone() 复制 fd，200 并发需 ~800+ fd）。
+    </p>
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-card"><div class="label">测试语言</div><div class="value">6 种</div></div>
+    <div class="meta-card"><div class="label">并发级别</div><div class="value">10 / 50 / 100 / 200</div></div>
+    <div class="meta-card"><div class="label">单场景时长</div><div class="value">10 秒</div></div>
+    <div class="meta-card"><div class="label">请求载荷</div><div class="value">1024 字节</div></div>
+    <div class="meta-card"><div class="label">总错误数</div><div class="value" style="color:#28a745">0</div></div>
+    <div class="meta-card"><div class="label">峰值 QPS</div><div class="value">85,291 (Zig)</div></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>吞吐量 (QPS) 对比</h2>
+    <div id="chart-qps" class="chart chart-tall"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>平均延迟对比 (ms)</h2>
+    <div id="chart-avg-lat" class="chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>P95 延迟对比 (ms)</h2>
+    <div id="chart-p95-lat" class="chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>P99 延迟对比 (ms)</h2>
+    <div id="chart-p99-lat" class="chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>CPU 使用率对比 (%)</h2>
+    <div id="chart-cpu" class="chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>内存占用对比 (MB)</h2>
+    <div id="chart-mem" class="chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>峰值 QPS 排名</h2>
+    <div id="chart-peak" class="chart"></div>
+  </div>
+
+  <div class="chart-section">
+    <h2>详细数据 — 并发 50（最佳性能区间）</h2>
+    <table>
+      <thead><tr><th>语言</th><th>QPS</th><th>avg(ms)</th><th>p50(ms)</th><th>p95(ms)</th><th>p99(ms)</th><th>CPU%</th><th>RSS(MB)</th><th>错误</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Zig</strong></td><td>85,291</td><td>0.586</td><td>0.576</td><td>0.689</td><td>0.780</td><td>188.0</td><td>10.5</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>Rust</strong></td><td>84,915</td><td>0.589</td><td>0.577</td><td>0.696</td><td>0.824</td><td>185.2</td><td>10.4</td><td style="color:#28a745">0</td></tr>
+        <tr><td>Go</td><td>77,257</td><td>0.647</td><td>0.632</td><td>0.806</td><td>0.920</td><td>424.2</td><td>12.8</td><td style="color:#28a745">0</td></tr>
+        <tr><td>Elixir</td><td>68,915</td><td>0.725</td><td>0.655</td><td>1.225</td><td>1.687</td><td>618.9</td><td>82.9</td><td style="color:#28a745">0</td></tr>
+        <tr><td>TypeScript</td><td>66,972</td><td>0.746</td><td>0.747</td><td>0.828</td><td>0.912</td><td>91.4</td><td>57.5</td><td style="color:#28a745">0</td></tr>
+        <tr><td>Python</td><td>30,879</td><td>1.619</td><td>1.503</td><td>3.420</td><td>4.833</td><td>298.4</td><td>32.8</td><td style="color:#28a745">0</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="findings">
+    <h2>关键发现（修复后）</h2>
+    <ul>
+      <li><span class="tag tag-best">最高吞吐</span> <strong>Zig</strong> 以 85,291 QPS 位居第一，<strong>Rust</strong> 紧随其后（84,915 QPS），两者在 50 并发时达到峰值，且在 200 并发下仍保持 83K+ QPS。</li>
+      <li><span class="tag tag-best">最低延迟</span> <strong>Rust</strong> 和 <strong>Zig</strong> 延迟最低且几乎相同：低并发 avg=0.130ms，200并发 avg=2.38ms，p99 仅 3.08ms（Rust）。</li>
+      <li><span class="tag tag-best">最低资源</span> <strong>Rust</strong> 和 <strong>Zig</strong> 内存占用最低（3.4-35.8MB），CPU 效率最高（~197% CPU 即可跑满 84K QPS）。</li>
+      <li><span class="tag tag-good">最稳定</span> <strong>Go</strong> 和 <strong>TypeScript</strong> 在修复前后均零错误。Go 吞吐 77K 但 CPU 消耗高（424%）；TypeScript 单线程（91% CPU）稳定 66K QPS。</li>
+      <li><span class="tag tag-good">Elixir 改善显著</span> 修复后 Elixir 在所有并发级别零错误，200并发 QPS 从 32K 提升到 70K，但 CPU 消耗最高（689%），内存最大（80-86MB）。</li>
+      <li><span class="tag tag-warn">Python 瓶颈</span> Python 受 GIL 限制，吞吐量仅为其他语言的 1/3（峰值 31K QPS），200并发下 p99 延迟达 23.8ms，不适合高并发场景。</li>
+      <li><span class="tag tag-best">全并发零错误</span> 修复后所有 6 种语言在 10/50/100/200 并发下均零连接错误，24 个测试场景全部通过。</li>
+    </ul>
+  </div>
+
+  <div class="findings">
+    <h2>结论与建议</h2>
+    <ul>
+      <li><strong>极致性能首选 Zig / Rust</strong>：吞吐量最高（85K QPS）、延迟最低、内存最小，适合对性能和资源效率要求极高的场景。</li>
+      <li><strong>生产环境首选 Go</strong>：综合表现均衡（77K QPS + 零错误 + 低内存 13MB + 生态成熟），是最稳妥的生产选择。</li>
+      <li><strong>I/O 密集型可选 TypeScript</strong>：单线程事件循环稳定可靠，零错误，适合 I/O 密集型但 CPU 不敏感的场景。</li>
+      <li><strong>高并发长连接可选 Elixir</strong>：BEAM 轻量级进程模型适合海量长连接，但短连接场景下 CPU/内存开销较大。</li>
+      <li><strong>Python 仅适合原型/低流量</strong>：GIL 限制明显，性能差距达 2-3 倍，不适合生产高并发。</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    测试工具：bench/bench.py (Python 编排) + bench/backend (Rust tokio echo server) · 数据可复现 · 修复后全场景零错误
+  </div>
+</div>
+
+<script>
+const concurrency = [10, 50, 100, 200];
+const languages = ['Go', 'Python', 'Rust', 'TypeScript', 'Zig', 'Elixir'];
+const colors = ['#4361ee', '#f72585', '#7209b7', '#4cc9f0', '#fca311', '#06d6a0'];
+
+const data = {
+  qps: {
+    'Go': [67749.1, 77256.6, 74704.9, 72328.5],
+    'Python': [30863.2, 30878.7, 29122.2, 25088.4],
+    'Rust': [76929.8, 84914.6, 84601.1, 84086.1],
+    'TypeScript': [65925.8, 66972.4, 66528.5, 66114.4],
+    'Zig': [76777.5, 85291.0, 85179.7, 83777.0],
+    'Elixir': [70293.6, 68914.9, 70595.6, 70022.3],
+  },
+  avgLat: {
+    'Go': [0.148, 0.647, 1.338, 2.763],
+    'Python': [0.324, 1.619, 3.433, 7.960],
+    'Rust': [0.130, 0.589, 1.182, 2.377],
+    'TypeScript': [0.152, 0.746, 1.502, 3.022],
+    'Zig': [0.130, 0.586, 1.173, 2.385],
+    'Elixir': [0.142, 0.725, 1.416, 2.852],
+  },
+  p95Lat: {
+    'Go': [0.206, 0.806, 1.585, 3.040],
+    'Python': [0.587, 3.420, 7.296, 16.796],
+    'Rust': [0.163, 0.696, 1.396, 2.789],
+    'TypeScript': [0.184, 0.828, 1.619, 3.168],
+    'Zig': [0.164, 0.689, 1.380, 2.793],
+    'Elixir': [0.191, 1.225, 2.521, 4.839],
+  },
+  p99Lat: {
+    'Go': [0.252, 0.920, 1.741, 3.444],
+    'Python': [0.767, 4.833, 10.125, 23.778],
+    'Rust': [0.195, 0.824, 1.696, 3.079],
+    'TypeScript': [0.258, 0.912, 1.735, 6.061],
+    'Zig': [0.198, 0.780, 1.544, 4.100],
+    'Elixir': [0.234, 1.687, 3.545, 6.877],
+  },
+  cpu: {
+    'Go': [275.8, 424.2, 416.3, 418.3],
+    'Python': [292.9, 298.4, 309.1, 337.1],
+    'Rust': [139.8, 185.2, 197.4, 197.8],
+    'TypeScript': [92.4, 91.4, 91.1, 92.4],
+    'Zig': [140.5, 188.0, 200.6, 197.2],
+    'Elixir': [298.0, 618.9, 674.6, 689.0],
+  },
+  mem: {
+    'Go': [7.6, 12.8, 16.1, 22.5],
+    'Python': [27.1, 32.8, 42.9, 63.2],
+    'Rust': [3.4, 10.4, 19.0, 36.0],
+    'TypeScript': [55.1, 57.5, 57.9, 64.1],
+    'Zig': [3.8, 10.5, 18.9, 35.8],
+    'Elixir': [72.7, 82.9, 86.1, 80.0],
+  },
+};
+
+function makeLineChart(domId, dataKey, yLabel) {
+  const chart = echarts.init(document.getElementById(domId));
+  const series = languages.map((lang, i) => ({
+    name: lang,
+    type: 'line',
+    data: data[dataKey][lang],
+    smooth: true,
+    symbol: 'circle',
+    symbolSize: 8,
+    lineStyle: { width: 2.5 },
+    itemStyle: { color: colors[i] },
+  }));
+  chart.setOption({
+    tooltip: { trigger: 'axis', triggerOn: 'click', renderMode: 'richText', confine: true },
+    legend: { data: languages, top: 0, type: 'scroll' },
+    grid: { left: 60, right: 30, top: 50, bottom: 40, containLabel: true },
+    xAxis: { type: 'category', data: concurrency.map(c => c + ' 并发'), name: '并发连接数', nameLocation: 'middle', nameGap: 25 },
+    yAxis: { type: 'value', name: yLabel, nameLocation: 'middle', nameGap: 45 },
+    series: series,
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+function makePeakChart() {
+  const chart = echarts.init(document.getElementById('chart-peak'));
+  const peaks = languages.map(lang => {
+    const arr = data.qps[lang];
+    const maxVal = Math.max(...arr);
+    const maxIdx = arr.indexOf(maxVal);
+    return { lang, qps: maxVal, conc: concurrency[maxIdx] };
+  }).sort((a, b) => b.qps - a.qps);
+  chart.setOption({
+    tooltip: {
+      trigger: 'axis', triggerOn: 'click', renderMode: 'richText', confine: true,
+      formatter: function(params) {
+        const p = params[0];
+        const item = peaks[p.dataIndex];
+        return item.lang + '<br/>峰值 QPS: ' + item.qps.toLocaleString() + '<br/>@ 并发: ' + item.conc;
+      }
+    },
+    grid: { left: 80, right: 40, top: 30, bottom: 40, containLabel: true },
+    xAxis: { type: 'value', name: 'QPS' },
+    yAxis: { type: 'category', data: peaks.map(p => p.lang), inverse: true },
+    series: [{
+      type: 'bar',
+      data: peaks.map((p, i) => ({
+        value: p.qps,
+        itemStyle: { color: colors[languages.indexOf(p.lang)] },
+      })),
+      label: { show: true, position: 'right', formatter: function(p) { return p.value.toLocaleString() + ' @' + peaks[p.dataIndex].conc + '并发'; } },
+      barWidth: '50%',
+    }],
+  });
+  window.addEventListener('resize', () => chart.resize());
+}
+
+makeLineChart('chart-qps', 'qps', '每秒请求数');
+makeLineChart('chart-avg-lat', 'avgLat', '平均延迟 (ms)');
+makeLineChart('chart-p95-lat', 'p95Lat', 'P95 延迟 (ms)');
+makeLineChart('chart-p99-lat', 'p99Lat', 'P99 延迟 (ms)');
+makeLineChart('chart-cpu', 'cpu', 'CPU 使用率 (%)');
+makeLineChart('chart-mem', 'mem', '内存占用 (MB)');
+makePeakChart();
+</script>
+</body>
+</html>
