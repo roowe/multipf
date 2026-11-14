@@ -1,19 +1,15 @@
 # gopf 多语言性能测试
 
-对 gopf 项目中 6 种语言实现的 TCP 四层反向代理进行系统化性能对比测试。
+对 gopf 项目中 8 种语言实现的 TCP 四层反向代理进行系统化性能对比测试。
 
 ## 架构
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
-│  Python 编排器   │────▶│  被测代理 (6种)   │────▶│  Rust Backend       │
-│  bench/bench.py │     │  Go/Py/Rust/TS/  │     │  tokio echo server  │
-│  - 启动/停止     │     │  Zig/Elixir      │     │  127.0.0.1:9000    │
-│  - 生成配置      │     └──────────────────┘     └─────────────────────┘
-│  - 并发压测      │
-│  - 采集 CPU/内存 │
-│  - 生成报告      │
-└─────────────────┘
+bench.py（Python asyncio 编排器）
+  ├─ 启动 Rust tokio echo backend（127.0.0.1:9000）
+  ├─ 依次启动被测代理（8 种语言）
+  ├─ 固定并发连接持续收发 1KB，采集 QPS / 延迟分布 / CPU / RSS
+  └─ 生成 results.json、report.txt、report.md
 ```
 
 - **Backend**：Rust + tokio 实现的高性能 TCP echo server（`bench/backend/`），作为所有代理的统一后端，确保后端不成为瓶颈。
@@ -59,7 +55,7 @@ python3 bench/bench.py
 - 并发级别：10, 50, 100, 200
 - 单场景时长：10 秒
 - 请求载荷：1024 字节
-- 测试语言：全部 6 种
+- 测试语言：全部 8 种
 
 ### 3. 自定义参数
 
@@ -110,6 +106,8 @@ cat bench/results/results.json
 | TypeScript | 1251 | `node gopf_ts/dist/main.js --listen 1251 settings.conf` |
 | Zig | 1252 | `./gopf_zig/zig-out/bin/gopf_zig --listen 1252 settings.conf` |
 | Elixir | 1253 | `./gopf_ex/bin/gopf_ex --listen 1253 settings.conf` |
+| C | 1254 | `./gopf_c/gopf_c --listen 1254 settings.conf` |
+| C++ | 1255 | `./gopf_cpp/gopf_cpp --listen 1255 settings.conf` |
 
 > 注意：Go 版本的 `--listen` 参数需要 `:port` 格式（如 `:1248`），其他语言使用纯端口号。
 
@@ -130,5 +128,8 @@ cat bench/results/results.json
 | Rust | 5 秒读超时导致高并发下连接被提前断开 | 移除 `set_read_timeout`，依赖 peer FIN 自然终止 |
 | Rust/Zig/Elixir/Python | listen backlog 过小（128 或默认 5），高并发下新连接被丢弃 | 统一提升到 4096 |
 | 全部 | macOS 默认 RLIMIT_NOFILE=256，Rust/Zig 每连接 dup 4 个 fd 导致耗尽 | 编排脚本启动时提升到 65536 |
+| C/C++ | 同一 fd 的读/写事件在同一批次投递，close 后访问已释放连接（UAF） | 关闭的连接延迟到批次结束再释放 |
+| C/C++ | 父进程的信号屏蔽被 exec 继承，SIGHUP/SIGTERM 处理器不执行 | 启动时 sigprocmask 显式解除 |
+| bench | 本机 `ps` 对所有进程返回 RSS=0，资源采样失真 | 优先使用 psutil 采样 |
 
-修复后 24 个测试场景（6 语言 × 4 并发级别）全部零错误。
+修复后 32 个测试场景（8 语言 × 4 并发级别）全部零错误。

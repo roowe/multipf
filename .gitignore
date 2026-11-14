@@ -33,6 +33,10 @@ npm-debug.log*
 /gopf_zig/zig-cache/
 /gopf_zig/zig-out/
 
+# C / C++
+/gopf_c/gopf_c
+/gopf_cpp/gopf_cpp
+
 # Editor / OS
 .DS_Store
 .idea/

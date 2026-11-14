@@ -35,6 +35,11 @@ from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+try:
+    import psutil
+except ImportError:  # optional dependency, ps remains the fallback
+    psutil = None
+
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
@@ -89,6 +94,16 @@ LANGUAGES: Dict[str, LangImpl] = {
         name="Elixir",
         port=1253,
         cmd=[str(PROJECT_ROOT / "gopf_ex" / "bin" / "gopf_ex")],
+    ),
+    "c": LangImpl(
+        name="C",
+        port=1254,
+        cmd=[str(PROJECT_ROOT / "gopf_c" / "gopf_c")],
+    ),
+    "cpp": LangImpl(
+        name="C++",
+        port=1255,
+        cmd=[str(PROJECT_ROOT / "gopf_cpp" / "gopf_cpp")],
     ),
 }
 
@@ -161,8 +176,28 @@ class ResourceSample:
     cpu_percent: float
     rss_mb: float
 
+_psutil_procs: Dict[int, object] = {}
+
 def sample_resources(pid: int) -> Optional[ResourceSample]:
-    """Sample CPU% and RSS (MB) of a process via ps (macOS / Linux)."""
+    """Sample CPU% and RSS (MB) of a process.
+
+    psutil is preferred: on some macOS builds `ps` reports rss=0 for every
+    process, which silently produces empty resource charts.
+    """
+    if psutil is not None:
+        try:
+            proc = _psutil_procs.get(pid)
+            if proc is None:
+                proc = psutil.Process(pid)
+                proc.cpu_percent(interval=None)  # prime the delta counter
+                _psutil_procs[pid] = proc
+            return ResourceSample(
+                cpu_percent=proc.cpu_percent(interval=None),
+                rss_mb=proc.memory_info().rss / (1024.0 * 1024.0),
+            )
+        except Exception:
+            _psutil_procs.pop(pid, None)
+
     try:
         out = subprocess.check_output(
             ["ps", "-p", str(pid), "-o", "%cpu=,rss="],
@@ -173,6 +208,8 @@ def sample_resources(pid: int) -> Optional[ResourceSample]:
         parts = out.split()
         cpu = float(parts[0])
         rss_kb = float(parts[1])
+        if rss_kb <= 0:
+            return None
         return ResourceSample(cpu_percent=cpu, rss_mb=rss_kb / 1024.0)
     except (subprocess.CalledProcessError, ValueError, IndexError):
         return None

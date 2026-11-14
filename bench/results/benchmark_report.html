@@ -43,7 +43,7 @@
 <body>
 <div class="container">
   <h1>gopf 多语言 TCP 代理性能测试报告 <span class="badge">修复后 · 全并发零错误</span></h1>
-  <p class="subtitle">6 种语言实现 × 4 个并发级别（10/50/100/200）× 10 秒压测 · 1KB 载荷 · 后端为 Rust tokio echo server</p>
+  <p class="subtitle">8 种语言实现 × 4 个并发级别（10/50/100/200）× 10 秒压测 · 1KB 载荷 · 后端为 Rust tokio echo server</p>
 
   <div class="fix-summary">
     <h3>修复内容与效果对比</h3>
@@ -61,15 +61,18 @@
     <p style="margin-top:10px;font-size:13px;color:#155724">
       <strong>修复措施：</strong>① Rust 移除 5 秒读超时（高并发下导致连接被提前断开）；② 所有语言 listen backlog 从 128/5 提升到 4096；③ 编排脚本统一将 RLIMIT_NOFILE 从 256 提升到 65536（Rust/Zig 每连接 try_clone() 复制 fd，200 并发需 ~800+ fd）。
     </p>
+    <p style="margin-top:6px;font-size:12px;color:#666">
+      注：以上为上一轮并发修复的历史数据，本轮 8 语言复测结果见下方图表与表格。
+    </p>
   </div>
 
   <div class="meta-grid">
-    <div class="meta-card"><div class="label">测试语言</div><div class="value">6 种</div></div>
+    <div class="meta-card"><div class="label">测试语言</div><div class="value">8 种</div></div>
     <div class="meta-card"><div class="label">并发级别</div><div class="value">10 / 50 / 100 / 200</div></div>
     <div class="meta-card"><div class="label">单场景时长</div><div class="value">10 秒</div></div>
     <div class="meta-card"><div class="label">请求载荷</div><div class="value">1024 字节</div></div>
     <div class="meta-card"><div class="label">总错误数</div><div class="value" style="color:#28a745">0</div></div>
-    <div class="meta-card"><div class="label">峰值 QPS</div><div class="value">85,291 (Zig)</div></div>
+    <div class="meta-card"><div class="label">峰值 QPS</div><div class="value">85,283 (Zig)</div></div>
   </div>
 
   <div class="chart-section">
@@ -112,12 +115,14 @@
     <table>
       <thead><tr><th>语言</th><th>QPS</th><th>avg(ms)</th><th>p50(ms)</th><th>p95(ms)</th><th>p99(ms)</th><th>CPU%</th><th>RSS(MB)</th><th>错误</th></tr></thead>
       <tbody>
-        <tr><td><strong>Zig</strong></td><td>85,291</td><td>0.586</td><td>0.576</td><td>0.689</td><td>0.780</td><td>188.0</td><td>10.5</td><td style="color:#28a745">0</td></tr>
-        <tr><td><strong>Rust</strong></td><td>84,915</td><td>0.589</td><td>0.577</td><td>0.696</td><td>0.824</td><td>185.2</td><td>10.4</td><td style="color:#28a745">0</td></tr>
-        <tr><td>Go</td><td>77,257</td><td>0.647</td><td>0.632</td><td>0.806</td><td>0.920</td><td>424.2</td><td>12.8</td><td style="color:#28a745">0</td></tr>
-        <tr><td>Elixir</td><td>68,915</td><td>0.725</td><td>0.655</td><td>1.225</td><td>1.687</td><td>618.9</td><td>82.9</td><td style="color:#28a745">0</td></tr>
-        <tr><td>TypeScript</td><td>66,972</td><td>0.746</td><td>0.747</td><td>0.828</td><td>0.912</td><td>91.4</td><td>57.5</td><td style="color:#28a745">0</td></tr>
-        <tr><td>Python</td><td>30,879</td><td>1.619</td><td>1.503</td><td>3.420</td><td>4.833</td><td>298.4</td><td>32.8</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>Zig</strong></td><td>85,283</td><td>0.586</td><td>0.579</td><td>0.705</td><td>0.845</td><td>215.1</td><td>18.9</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>C++</strong></td><td>82,304</td><td>0.607</td><td>0.616</td><td>0.681</td><td>0.845</td><td>91.3</td><td>10.4</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>C</strong></td><td>80,722</td><td>0.619</td><td>0.624</td><td>0.682</td><td>0.925</td><td>89.9</td><td>10.2</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>Rust</strong></td><td>78,504</td><td>0.637</td><td>0.588</td><td>0.953</td><td>1.501</td><td>202.5</td><td>12.7</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>Go</strong></td><td>72,992</td><td>0.685</td><td>0.652</td><td>0.886</td><td>1.260</td><td>397.6</td><td>16.4</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>TypeScript</strong></td><td>67,187</td><td>0.744</td><td>0.739</td><td>0.822</td><td>0.931</td><td>90.6</td><td>57.2</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>Elixir</strong></td><td>66,018</td><td>0.757</td><td>0.688</td><td>1.231</td><td>1.528</td><td>704.9</td><td>83.6</td><td style="color:#28a745">0</td></tr>
+        <tr><td><strong>Python</strong></td><td>30,627</td><td>1.632</td><td>1.476</td><td>3.379</td><td>4.674</td><td>300.9</td><td>34.4</td><td style="color:#28a745">0</td></tr>
       </tbody>
     </table>
   </div>
@@ -125,24 +130,26 @@
   <div class="findings">
     <h2>关键发现（修复后）</h2>
     <ul>
-      <li><span class="tag tag-best">最高吞吐</span> <strong>Zig</strong> 以 85,291 QPS 位居第一，<strong>Rust</strong> 紧随其后（84,915 QPS），两者在 50 并发时达到峰值，且在 200 并发下仍保持 83K+ QPS。</li>
-      <li><span class="tag tag-best">最低延迟</span> <strong>Rust</strong> 和 <strong>Zig</strong> 延迟最低且几乎相同：低并发 avg=0.130ms，200并发 avg=2.38ms，p99 仅 3.08ms（Rust）。</li>
-      <li><span class="tag tag-best">最低资源</span> <strong>Rust</strong> 和 <strong>Zig</strong> 内存占用最低（3.4-35.8MB），CPU 效率最高（~197% CPU 即可跑满 84K QPS）。</li>
-      <li><span class="tag tag-good">最稳定</span> <strong>Go</strong> 和 <strong>TypeScript</strong> 在修复前后均零错误。Go 吞吐 77K 但 CPU 消耗高（424%）；TypeScript 单线程（91% CPU）稳定 66K QPS。</li>
-      <li><span class="tag tag-good">Elixir 改善显著</span> 修复后 Elixir 在所有并发级别零错误，200并发 QPS 从 32K 提升到 70K，但 CPU 消耗最高（689%），内存最大（80-86MB）。</li>
-      <li><span class="tag tag-warn">Python 瓶颈</span> Python 受 GIL 限制，吞吐量仅为其他语言的 1/3（峰值 31K QPS），200并发下 p99 延迟达 23.8ms，不适合高并发场景。</li>
-      <li><span class="tag tag-best">全并发零错误</span> 修复后所有 6 种语言在 10/50/100/200 并发下均零连接错误，24 个测试场景全部通过。</li>
+      <li><span class="tag tag-best">最高吞吐</span> <strong>Zig</strong> 以 85,283 QPS 位居第一（50 并发），<strong>C++</strong> 83,459（200 并发）与 <strong>C</strong> 83,421（100 并发）紧随其后，Rust 80,768。</li>
+      <li><span class="tag tag-best">单核最强</span> <strong>C</strong> / <strong>C++</strong> 用单线程事件循环（kqueue/epoll）只占约 90% 的单核 CPU，就达到与多线程 Rust/Zig 同水平的吞吐，是全场 CPU 效率最高的实现。</li>
+      <li><span class="tag tag-best">最低内存</span> <strong>C</strong> 在 50 并发 10.2MB，200 并发 17.6MB；<strong>C++</strong> 为 10.4MB / 23.8MB。两者靠“缓冲满则不读”的背压模型把每连接内存控制在 32KB 上限。</li>
+      <li><span class="tag tag-best">最低延迟</span> 50 并发下 <strong>Zig</strong> 0.586ms、<strong>C++</strong> 0.607ms、<strong>C</strong> 0.619ms、Rust 0.637ms；200 并发高性能实现 avg 均在 2.4-2.7ms。</li>
+      <li><span class="tag tag-good">多核 vs 单核</span> Rust/Zig/Go 会吃满多核（200-425% CPU）；C/C++/TypeScript 是单线程模型，只用一个核。若要多核，需 <code>SO_REUSEPORT</code> + 每线程一个事件循环。</li>
+      <li><span class="tag tag-good">Elixir 改善显著</span> 修复后 Elixir 全并发零错误，200 并发 67.6K QPS，但 CPU 消耗最高（699%），内存也偏大（71.6MB）。</li>
+      <li><span class="tag tag-warn">Python 瓶颈</span> Python 受 GIL 限制，峰值 31.3K QPS，约为其他实现的 1/3；200 并发 p99 达 24.4ms。</li>
+      <li><span class="tag tag-best">全并发零错误</span> 8 种语言 × 4 个并发级别共 32 个测试场景，全部零连接错误。</li>
+      <li><span class="tag tag-warn">数据波动</span> 单次 10 秒采样，轮次间峰值 QPS 波动约 ±5-8%，同档位排名可能小幅变化。</li>
     </ul>
   </div>
 
   <div class="findings">
     <h2>结论与建议</h2>
     <ul>
-      <li><strong>极致性能首选 Zig / Rust</strong>：吞吐量最高（85K QPS）、延迟最低、内存最小，适合对性能和资源效率要求极高的场景。</li>
-      <li><strong>生产环境首选 Go</strong>：综合表现均衡（77K QPS + 零错误 + 低内存 13MB + 生态成熟），是最稳妥的生产选择。</li>
-      <li><strong>I/O 密集型可选 TypeScript</strong>：单线程事件循环稳定可靠，零错误，适合 I/O 密集型但 CPU 不敏感的场景。</li>
-      <li><strong>高并发长连接可选 Elixir</strong>：BEAM 轻量级进程模型适合海量长连接，但短连接场景下 CPU/内存开销较大。</li>
-      <li><strong>Python 仅适合原型/低流量</strong>：GIL 限制明显，性能差距达 2-3 倍，不适合生产高并发。</li>
+      <li><span class="tag tag-best">多核吞吐首选</span> <strong>Rust / Zig</strong>：85K QPS、最低延迟，适合对吞吐和尾延迟要求极高的场景。</li>
+      <li><span class="tag tag-best">单核极致 / 资源受限</span> <strong>C / C++</strong>：一个核跑 81K QPS、内存不到 20MB，适合边缘节点、容器配额受限或希望按核水平扩展的场景。</li>
+      <li><span class="tag tag-good">生产均衡</span> <strong>Go</strong>：75K QPS + 零错误 + 生态成熟，CPU 开销较高但工程成本最低。</li>
+      <li><span class="tag tag-good">I/O 密集型</span> <strong>TypeScript</strong>：单线程事件循环稳定可靠，68K QPS。</li>
+      <li><span class="tag tag-warn">原型 / 低流量</span> <strong>Python</strong>：GIL 限制明显，性能约为其他实现的 1/3。</li>
     </ul>
   </div>
 
@@ -153,57 +160,69 @@
 
 <script>
 const concurrency = [10, 50, 100, 200];
-const languages = ['Go', 'Python', 'Rust', 'TypeScript', 'Zig', 'Elixir'];
-const colors = ['#4361ee', '#f72585', '#7209b7', '#4cc9f0', '#fca311', '#06d6a0'];
+const languages = ['Go', 'Python', 'Rust', 'TypeScript', 'Zig', 'Elixir', 'C', 'C++'];
+const colors = ['#4361ee', '#f72585', '#7209b7', '#4cc9f0', '#fca311', '#06d6a0', '#e63946', '#2b9348'];
 
 const data = {
   qps: {
-    'Go': [67749.1, 77256.6, 74704.9, 72328.5],
-    'Python': [30863.2, 30878.7, 29122.2, 25088.4],
-    'Rust': [76929.8, 84914.6, 84601.1, 84086.1],
-    'TypeScript': [65925.8, 66972.4, 66528.5, 66114.4],
-    'Zig': [76777.5, 85291.0, 85179.7, 83777.0],
-    'Elixir': [70293.6, 68914.9, 70595.6, 70022.3],
+    'Go': [61330.8, 72991.9, 71354.1, 70464.7],
+    'Python': [31266.3, 30626.7, 30132.4, 24654.5],
+    'Rust': [74317.9, 78503.8, 80767.8, 75250.4],
+    'TypeScript': [68468.4, 67187.0, 67364.4, 68201.7],
+    'Zig': [75584.0, 85283.0, 84742.3, 80257.7],
+    'Elixir': [70710.2, 66018.1, 67981.3, 67596.5],
+    'C': [77909.0, 80722.1, 83420.8, 81775.5],
+    'C++': [76772.2, 82304.1, 82482.8, 83459.4],
   },
   avgLat: {
-    'Go': [0.148, 0.647, 1.338, 2.763],
-    'Python': [0.324, 1.619, 3.433, 7.960],
-    'Rust': [0.130, 0.589, 1.182, 2.377],
-    'TypeScript': [0.152, 0.746, 1.502, 3.022],
-    'Zig': [0.130, 0.586, 1.173, 2.385],
-    'Elixir': [0.142, 0.725, 1.416, 2.852],
+    'Go': [0.163, 0.685, 1.401, 2.837],
+    'Python': [0.320, 1.632, 3.316, 8.101],
+    'Rust': [0.134, 0.637, 1.229, 2.654],
+    'TypeScript': [0.146, 0.744, 1.484, 2.927],
+    'Zig': [0.132, 0.586, 1.179, 2.490],
+    'Elixir': [0.141, 0.757, 1.470, 2.956],
+    'C': [0.128, 0.619, 1.198, 2.443],
+    'C++': [0.130, 0.607, 1.212, 2.392],
   },
   p95Lat: {
-    'Go': [0.206, 0.806, 1.585, 3.040],
-    'Python': [0.587, 3.420, 7.296, 16.796],
-    'Rust': [0.163, 0.696, 1.396, 2.789],
-    'TypeScript': [0.184, 0.828, 1.619, 3.168],
-    'Zig': [0.164, 0.689, 1.380, 2.793],
-    'Elixir': [0.191, 1.225, 2.521, 4.839],
+    'Go': [0.257, 0.886, 1.665, 3.144],
+    'Python': [0.581, 3.379, 6.994, 17.567],
+    'Rust': [0.165, 0.953, 1.624, 3.540],
+    'TypeScript': [0.178, 0.822, 1.612, 3.148],
+    'Zig': [0.162, 0.705, 1.428, 2.914],
+    'Elixir': [0.192, 1.231, 2.525, 4.812],
+    'C': [0.153, 0.682, 1.327, 2.621],
+    'C++': [0.158, 0.681, 1.323, 2.604],
   },
   p99Lat: {
-    'Go': [0.252, 0.920, 1.741, 3.444],
-    'Python': [0.767, 4.833, 10.125, 23.778],
-    'Rust': [0.195, 0.824, 1.696, 3.079],
-    'TypeScript': [0.258, 0.912, 1.735, 6.061],
-    'Zig': [0.198, 0.780, 1.544, 4.100],
-    'Elixir': [0.234, 1.687, 3.545, 6.877],
+    'Go': [0.442, 1.260, 1.918, 4.221],
+    'Python': [0.761, 4.674, 9.682, 24.437],
+    'Rust': [0.216, 1.501, 2.267, 5.255],
+    'TypeScript': [0.242, 0.931, 2.585, 3.389],
+    'Zig': [0.198, 0.845, 1.666, 3.627],
+    'Elixir': [0.250, 1.528, 3.222, 6.077],
+    'C': [0.197, 0.925, 1.408, 3.552],
+    'C++': [0.226, 0.845, 1.436, 2.715],
   },
   cpu: {
-    'Go': [275.8, 424.2, 416.3, 418.3],
-    'Python': [292.9, 298.4, 309.1, 337.1],
-    'Rust': [139.8, 185.2, 197.4, 197.8],
-    'TypeScript': [92.4, 91.4, 91.1, 92.4],
-    'Zig': [140.5, 188.0, 200.6, 197.2],
-    'Elixir': [298.0, 618.9, 674.6, 689.0],
+    'Go': [252.6, 397.6, 415.9, 423.1],
+    'Python': [290.9, 300.9, 333.0, 366.7],
+    'Rust': [140.1, 202.5, 224.8, 227.2],
+    'TypeScript': [92.5, 90.6, 92.1, 93.0],
+    'Zig': [144.3, 215.1, 238.9, 241.1],
+    'Elixir': [311.1, 704.9, 718.6, 699.0],
+    'C': [89.0, 89.9, 91.8, 90.9],
+    'C++': [87.2, 91.3, 91.3, 90.6],
   },
   mem: {
-    'Go': [7.6, 12.8, 16.1, 22.5],
-    'Python': [27.1, 32.8, 42.9, 63.2],
-    'Rust': [3.4, 10.4, 19.0, 36.0],
-    'TypeScript': [55.1, 57.5, 57.9, 64.1],
-    'Zig': [3.8, 10.5, 18.9, 35.8],
-    'Elixir': [72.7, 82.9, 86.1, 80.0],
+    'Go': [15.0, 16.4, 21.6, 28.2],
+    'Python': [30.4, 34.4, 50.3, 62.5],
+    'Rust': [11.2, 12.7, 18.6, 29.4],
+    'TypeScript': [72.8, 57.2, 52.3, 59.3],
+    'Zig': [11.6, 18.9, 25.4, 47.7],
+    'Elixir': [75.2, 83.6, 68.1, 71.6],
+    'C': [8.8, 10.2, 11.8, 17.6],
+    'C++': [9.0, 10.4, 14.5, 23.8],
   },
 };
 
